@@ -202,6 +202,14 @@ class RegEvent(Event):
         if self.equal is None:
             self.equal = 0
 
+    @property
+    def value(self):
+        return self._cffi_event.reg_event.value
+
+    @property
+    def msr(self):
+        return self._cffi_event.reg_event.msr
+
     def to_cffi(self):
         super().to_cffi()
         self._cffi_event.reg_event.reg = self.register.value
@@ -213,8 +221,9 @@ class RegEvent(Event):
         d = super().to_dict()
         d['in_access'] = self.in_access.name
         d['out_access'] = RegAccess(self._cffi_event.reg_event.out_access).name
-        d['value'] = hex(self._cffi_event.reg_event.value)
+        d['value'] = hex(self.value)
         d['previous'] = hex(self._cffi_event.reg_event.previous)
+        d['msr'] = hex(self.msr)
         return d
 
 
