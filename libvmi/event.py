@@ -112,6 +112,14 @@ class Event(object):
     def cffi_event(self):
         return self._cffi_event
 
+    @property
+    def vcpu_id(self):
+        return self._cffi_event.vcpu_id
+
+    @property
+    def x86_regs(self):
+        return self._cffi_event.x86_regs
+
     def to_cffi(self):
         self._cffi_event.version = self.version
         self._cffi_event.type = self.type.value
@@ -129,11 +137,11 @@ class Event(object):
             'type': self.type.name,
             'slat_id': self.slat_id,
             'data': self.data,
-            'vcpu_id': self._cffi_event.vcpu_id,
+            'vcpu_id': self.vcpu_id,
             'x86_regs': {
-                'rax': hex(self._cffi_event.x86_regs.rax),
-                'rsp': hex(self._cffi_event.x86_regs.rsp),
-                'rip': hex(self._cffi_event.x86_regs.rip),
+                'rax': hex(self.x86_regs.rax),
+                'rsp': hex(self.x86_regs.rsp),
+                'rip': hex(self.x86_regs.rip),
             }
         }
 
@@ -149,6 +157,22 @@ class MemEvent(Event):
         self.generic = generic
         self.gfn = gfn
 
+    @property
+    def out_access(self):
+        return MemAccess(self._cffi_event.mem_event.out_access)
+
+    @property
+    def gla(self):
+        return self._cffi_event.mem_event.gla
+
+    @property
+    def gla_valid(self):
+        return self._cffi_event.mem_event.gla_valid
+
+    @property
+    def offset(self):
+        return self._cffi_event.mem_event.offset
+
     def to_cffi(self):
         super().to_cffi()
         self._cffi_event.mem_event.in_access = self.in_access.value
@@ -162,11 +186,11 @@ class MemEvent(Event):
     def to_dict(self):
         d = super().to_dict()
         d['in_access'] = self.in_access.name
-        d['out_access'] = MemAccess(self._cffi_event.mem_event.out_access).name
+        d['out_access'] = self.out_access.name
         d['gptw'] = bool(self._cffi_event.mem_event.gptw)
-        d['gla_valid'] = bool(self._cffi_event.mem_event.gla_valid)
-        d['gla'] = hex(self._cffi_event.mem_event.gla)
-        d['offset'] = hex(self._cffi_event.mem_event.offset)
+        d['gla_valid'] = bool(self.gla_valid)
+        d['gla'] = hex(self.gla)
+        d['offset'] = hex(self.offset)
         return d
 
 
@@ -182,11 +206,32 @@ class SingleStepEvent(Event):
             self.vcpus |= mask
         self.enable = enable
 
+    @property
+    def gla(self):
+        return self._cffi_event.ss_event.gla
+
+    @property
+    def gfn(self):
+        return self._cffi_event.ss_event.gfn
+
+    @property
+    def offset(self):
+        return self._cffi_event.ss_event.offset
+
     def to_cffi(self):
         super().to_cffi()
         self._cffi_event.ss_event.vcpus = self.vcpus
         self._cffi_event.ss_event.enable = int(self.enable)
         return self._cffi_event
+
+    def to_dict(self):
+        d = super().to_dict()
+        d['vcpus'] = self.vcpus
+        d['enable'] = self.enable
+        d['gla'] = hex(self.gla)
+        d['gfn'] = hex(self.gfn)
+        d['offset'] = hex(self.offset)
+        return d
 
 
 class RegEvent(Event):
@@ -202,6 +247,18 @@ class RegEvent(Event):
         if self.equal is None:
             self.equal = 0
 
+    @property
+    def value(self):
+        return self._cffi_event.reg_event.value
+
+    @property
+    def previous(self):
+        return self._cffi_event.reg_event.previous
+
+    @property
+    def msr(self):
+        return self._cffi_event.reg_event.msr
+
     def to_cffi(self):
         super().to_cffi()
         self._cffi_event.reg_event.reg = self.register.value
@@ -213,8 +270,9 @@ class RegEvent(Event):
         d = super().to_dict()
         d['in_access'] = self.in_access.name
         d['out_access'] = RegAccess(self._cffi_event.reg_event.out_access).name
-        d['value'] = hex(self._cffi_event.reg_event.value)
-        d['previous'] = hex(self._cffi_event.reg_event.previous)
+        d['value'] = hex(self.value)
+        d['previous'] = hex(self.previous)
+        d['msr'] = hex(self.msr)
         return d
 
 
@@ -239,6 +297,18 @@ class IntEvent(Event):
         self._reinject = value
         self._cffi_event.interrupt_event.reinject = self._reinject
 
+    @property
+    def gla(self):
+        return self._cffi_event.interrupt_event.gla
+
+    @property
+    def gfn(self):
+        return self._cffi_event.interrupt_event.gfn
+
+    @property
+    def offset(self):
+        return self._cffi_event.interrupt_event.offset
+
     def to_cffi(self):
         super().to_cffi()
         self._cffi_event.interrupt_event.intr = self.intr.value
@@ -249,6 +319,9 @@ class IntEvent(Event):
         d = super().to_dict()
         d['intr'] = self.intr.name
         d['reinject'] = self._reinject
+        d['gla'] = hex(self.gla)
+        d['gfn'] = hex(self.gfn)
+        d['offset'] = hex(self.offset)
         return d
 
 
